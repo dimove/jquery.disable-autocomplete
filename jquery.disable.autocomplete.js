@@ -8,19 +8,18 @@
 
 	function disableAutocomplete() {
 
-		var $input = $(this).attr("autocomplete", "off").val('');
-
+		var $input = $(this).attr("autocomplete", "off");
 		if (typeof this.selectionStart === "undefined") {
 			return true; // Older browsers are OK.
 		}
 
-		var $clone = $input.clone().removeAttr("placeholder");
-		var $hidden = $input.clone().removeAttr("placeholder").attr("type", "hidden");
+		var $hidden = $input.clone().attr("type", "hidden");
+		var $clone = $input.clone();
 
-		var rePswdChar = /^[\w\ \`\~\!\@\#\$\%\^\&\*\(\)\-\=\+\/\?\.\>\,\<\'\"\;\:\\\|\]\}\[\{]$/;
+		var rePswdChar = /^[\ \w\`\~\!\@\#\$\%\^\&\*\(\)\-\=\+\/\?\.\>\,\<\'\"\;\:\\\|\]\}\[\{]$/;
+		var reArryowKey = /^(37|39)$/;
 		var reBackDelete = /^(8|46)$/;
-		var reArrowKey = /^(37|39)$/;
-		var reSubmit = /^(13)$/;
+		var reEnterKey = /^(13)$/;
 
 		function maskAndSyncInputs (event) {
 			var key = event.which;
@@ -30,13 +29,10 @@
 			var character = String.fromCharCode(key);
 			var selectionLength = (this.selectionEnd - cursorPos);
 
-			var isSubmit = reSubmit.test(key);
-			var isArrowKey = reArrowKey.test(event.keyCode);
+			var isArrowKey = reArryowKey.test(event.keyCode);
 			var isBackspaceOrDelete = reBackDelete.test(key);
 			var isAcceptablePswdChar = rePswdChar.test(character);
-
-			if (maskedValue === "password") maskedValue = '';
-			if (actualValue === "password") actualValue = '';
+			var isEnterKey = reEnterKey.test(event.keyCode);
 
 			var arrMaskedValue = maskedValue.split('');
 			var arrActualValue = actualValue.split('');
@@ -44,27 +40,22 @@
 			if (event.type === "keydown") {
 				if (isBackspaceOrDelete) {
 					if (selectionLength) {
-						//arrMaskedValue.splice(cursorPos, selectionLength);
 						arrActualValue.splice(cursorPos, selectionLength);
 					} else if (key === 46) { // Delete next character
-						//arrMaskedValue.splice(cursorPos, 1);
 						arrActualValue.splice(cursorPos, 1);
 					} else { // Delete last character (backspace)
-						//arrMaskedValue.splice(--cursorPos, 1);
-						arrActualValue.splice(cursorPos, 1);
+						arrActualValue.splice(--cursorPos, 1);
 					}
 					$hidden.val(arrActualValue.join(''));
-					//$clone.val(arrMaskedValue.join(''));
 				}
 				return true;
 			} else if (event.type === "keypress") {
-				if (isSubmit) this.form.submit();
 				if (isAcceptablePswdChar) {
 					arrActualValue.splice(cursorPos, selectionLength, character);
 					arrMaskedValue.splice(cursorPos, selectionLength, '*');
 					cursorPos++;
 				} else {
-					return isBackspaceOrDelete || isArrowKey;
+					return isBackspaceOrDelete || isArrowKey || isEnterKey;
 				}
 			} else {
 				// Disable pasting passwords.
@@ -89,7 +80,7 @@
 		}).on(
 			"keypress keydown paste", maskAndSyncInputs
 		);
-
+		
 		$input.before(
 			$hidden, $clone
 		).remove();
